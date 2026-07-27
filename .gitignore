@@ -1,0 +1,6 @@
+.env*
+.venv
+*.env*
+chatbot_telegram/.env
+chatbot_telegram/.env.local
+chatbot_telegram/src/__pycache__/

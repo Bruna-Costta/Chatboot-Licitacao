@@ -1,0 +1,15 @@
+[project]
+name = "chatbot-telegram"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.116.0",
+    "dotenv>=0.9.9",
+    "openai>=2.45.0",
+    "openrouter>=0.11.22",
+    "pydotenv>=0.0.7",
+    "pytelegrambotapi>=4.34.0",
+    "requests>=2.34.2",
+]
