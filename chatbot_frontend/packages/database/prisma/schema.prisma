@@ -1,0 +1,197 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+enum SemanticDimension {
+  NORMATIVE
+  OPERATIONAL
+  DOCUMENTAL
+  UNCERTAIN
+}
+
+enum TriageStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  triages       Triage[]
+  conversations Conversation[]
+  messages      Message[]
+  attachments   Attachment[]
+
+  @@map("organization")
+}
+
+/// Better Auth's core User model, extended with the required organizationId tenant column.
+model User {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  email          String   @unique
+  emailVerified  Boolean  @default(false)
+  image          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sessions      Session[]
+  accounts      Account[]
+  triages       Triage[]
+  conversations Conversation[]
+
+  @@index([organizationId])
+  @@map("user")
+}
+
+/// Better Auth session table.
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+/// Better Auth account table. Credential (email/password) accounts store the password hash here, not on User.
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  password              String?
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+/// Better Auth verification table (email verification / password reset tokens).
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+model Triage {
+  id                String             @id @default(cuid())
+  organizationId    String
+  userId            String
+  subject           String
+  processStage      String
+  contractType      String
+  doubtType         String
+  description       String
+  semanticDimension SemanticDimension?
+  status            TriageStatus       @default(IN_PROGRESS)
+  completedAt       DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+
+  @@index([organizationId, userId])
+  @@map("triage")
+}
+
+model Conversation {
+  id             String             @id @default(cuid())
+  organizationId String
+  userId         String
+  triageId       String
+  title          String?
+  status         ConversationStatus @default(ACTIVE)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triage       Triage       @relation(fields: [triageId], references: [id], onDelete: Restrict)
+  messages     Message[]
+
+  @@index([organizationId, userId])
+  @@map("conversation")
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  organizationId String
+  role           MessageRole
+  content        String
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  attachments  Attachment[]
+
+  @@index([organizationId, conversationId])
+  @@map("message")
+}
+
+/// Files attached to a USER message. fileName is client-supplied and display-only;
+/// storedName is server-generated and is the only value ever used to build a disk path.
+model Attachment {
+  id             String   @id @default(cuid())
+  messageId      String
+  organizationId String
+  fileName       String
+  storedName     String
+  mimeType       String
+  sizeBytes      Int
+  createdAt      DateTime @default(now())
+
+  message      Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, messageId])
+  @@map("attachment")
+}

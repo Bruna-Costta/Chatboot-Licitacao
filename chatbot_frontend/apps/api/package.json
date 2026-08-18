@@ -1,0 +1,31 @@
+{
+  "name": "api",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "dotenv -e ../../.env -- bun run --watch src/index.ts",
+    "build": "dotenv -e ../../.env -- bun build src/index.ts --outdir dist --target bun",
+    "start": "dotenv -e ../../.env -- bun run dist/index.js",
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "dotenv -e ../../.env -- bun test"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1",
+    "@workspace/ai": "workspace:*",
+    "@workspace/auth": "workspace:*",
+    "@workspace/database": "workspace:*",
+    "@workspace/types": "workspace:*",
+    "elysia": "^1",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "^9",
+    "typescript": "^5"
+  }
+}
